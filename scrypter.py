@@ -5,13 +5,12 @@ import sys
 
 def confirm_overwrite(path):
     """
-    Prompt the user to confirm overwriting an existing file.
+    Ask the user whether to overwrite an existing file.
 
-    Args:
-        path (str): The path of the existing file.
+    Loops until the user enters 'y' or 'n'.
 
     Returns:
-        bool: True if the user confirms overwrite, False otherwise.
+        bool: True if overwrite is confirmed, False otherwise.
     """
 
     while True:
@@ -22,6 +21,13 @@ def confirm_overwrite(path):
             case _: print("Invalid choice")
 
 def write_file(path, data):
+    """
+    Write binary data to a file.
+
+    Returns:
+        int: 0 on success, 1 on OS error.
+    """
+
     try:
         with open(path, "wb") as f:
             f.write(data)
@@ -31,18 +37,9 @@ def write_file(path, data):
 
 def encrypt_file(args):
     """
-    Encrypt a file using a Fernet key.
+    Encrypt a file using a Fernet key and save it as a .enc file.
 
-    Prompts the user if the encrypted file already exists unless --force is used.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments containing:
-            file (str): Path to the file to encrypt.
-            key (str): Path to the key file.
-            force (bool): Whether to overwrite existing files without prompting.
-
-    Raises:
-        SystemExit: If the file or key path doesn't exist, or if encryption fails.
+    Handles file validation, encryption, and overwrite logic.
     """
 
     file_path = os.path.abspath(args.file)
@@ -100,19 +97,10 @@ def encrypt_file(args):
 
 def decrypt_file(args):
     """
-    Decrypt an encrypted file using a Fernet key.
+    Decrypt a .enc file using a Fernet key.
 
-    Prompts the user if the decrypted file already exists unless --force is used.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments containing:
-            file (str): Path to the encrypted file.
-            key (str): Path to the key file.
-            force (bool): Whether to overwrite existing files without prompting.
-
-    Raises:
-        SystemExit: If the file or key path doesn't exist, if the key is invalid,
-                    or if decryption fails.
+    Can either print the output or write it to a file.
+    Handles invalid keys and decoding errors.
     """
 
     file_path = os.path.abspath(args.file)
@@ -189,17 +177,9 @@ def decrypt_file(args):
 
 def generate_key(args):
     """
-    Generate a new Fernet key and write it to a file.
+    Generate a new Fernet key and write it to disk.
 
-    Prompts the user if the key file already exists unless --force is used.
-
-    Args:
-        args (argparse.Namespace): Parsed command-line arguments containing:
-            path (str): Path to the key file to create.
-            force (bool): Whether to overwrite existing key files without prompting.
-
-    Raises:
-        SystemExit: If the key file cannot be created or the operation is aborted.
+    Respects overwrite confirmation unless --force is used.
     """
 
     key_path = os.path.abspath(args.path)
@@ -227,15 +207,7 @@ def generate_key(args):
 
 def main():
     """
-    Parse command-line arguments and dispatch to the appropriate function.
-
-    Subcommands supported:
-        - encrypt: Encrypt a file with a key.
-        - decrypt: Decrypt a file with a key.
-        - gen_key: Generate a new Fernet key.
-
-    Raises:
-        SystemExit: If the arguments are invalid or the user interrupts the program.
+    Parse command-line arguments and execute the selected command.
     """
 
     parser = argparse.ArgumentParser(
@@ -246,17 +218,25 @@ def main():
         )
     )
 
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(
+            dest="command", 
+            required=True
+    )
 
     encrypt_parser = subparsers.add_parser(
-        "encrypt", 
-        description=(
-            "Encrypt a file using a Fernet key. "
-            "The output will be saved with a '.enc' extension."
-        ), 
-        help="Encrypt a file using a key"
+            "encrypt", 
+            description=(
+                "Encrypt a file using a Fernet key. "
+                "The output will be saved with a '.enc' extension."
+            ), 
+            help="Encrypt a file using a key"
     )
-    encrypt_parser.add_argument("file", help="Path to the file you want to encrypt")
+
+    encrypt_parser.add_argument(
+            "file", 
+            help="Path to the file you want to encrypt"
+    )
+
     encrypt_parser.add_argument("key", help="Path to the key file used for encryption")
     encrypt_parser.add_argument(
         "-f", "--force", action="store_true", 
@@ -272,13 +252,29 @@ def main():
         ), 
         help="Decrypt a file using a key"
     )
-    decrypt_parser.add_argument("file", help="Path to the encrypted file")
-    decrypt_parser.add_argument("key", help="Path to the key file used for decryption")
+
     decrypt_parser.add_argument(
-        "-f", "--force", action="store_true", 
+            "file", 
+            help="Path to the encrypted file"
+    )
+
+    decrypt_parser.add_argument(
+            "key", 
+            help="Path to the key file used for decryption"
+    )
+
+    decrypt_parser.add_argument(
+        "-f", "--force", 
+        action="store_true", 
         help="Overwrite existing decrypted file without prompting"
     )
-    decrypt_parser.add_argument("-p", "--print", action=argparse.BooleanOptionalAction, default=False, help="Prints the decrypted file contents to the terminal")
+
+    decrypt_parser.add_argument(
+            "-p", "--print", 
+            action=argparse.BooleanOptionalAction, 
+            default=False, 
+            help="Prints the decrypted file contents to the terminal"
+    )
     decrypt_parser.set_defaults(func=decrypt_file)
 
     key_parser = subparsers.add_parser(
@@ -289,9 +285,15 @@ def main():
         ), 
         help="Generate a new Fernet key"
     )
-    key_parser.add_argument("path", help="Path to save the generated key file")
+
     key_parser.add_argument(
-        "-f", "--force", action="store_true", 
+            "path", 
+            help="Path to save the generated key file"
+    )
+
+    key_parser.add_argument(
+        "-f", "--force", 
+        action="store_true", 
         help="Overwrite existing key file without prompting"
     )
     key_parser.set_defaults(func=generate_key)
